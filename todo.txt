@@ -1,0 +1,3 @@
+Add button lock out when off
+Pass string to readings functions (custom calls, distance calls, emergency calls)
+animations maybe???
