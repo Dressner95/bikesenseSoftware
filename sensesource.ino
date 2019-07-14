@@ -117,7 +117,7 @@ void setup() {
   // 320*C for 150 ms
   bme.setGasHeater(320, 150);
 
-  initReadings();
+
 
   Serial.begin(9600);
 
@@ -158,6 +158,8 @@ void loop() {
           Cellular.off();
           box.gpsOff();
 
+          RGB.color(0, 0, 0);
+
           softOff = true;
 
           break;
@@ -165,7 +167,7 @@ void loop() {
         //J5
         case 3:
           emergency("1");
-        
+
           readings("E");
           break;
       }
@@ -190,6 +192,9 @@ void loop() {
       Particle.connect();
       //Now check for GPS
       if (box.gpsFix()) {
+
+  initReadings();
+
         //When ready = true then the sense box is connected and should begin transmitting
         RGB.color(0, 255, 0);
 
@@ -204,7 +209,7 @@ void loop() {
         */
         if ( distance() > distanceInterval) {
           readings("Interval");
-          
+
             //all ON
 
         }
@@ -293,7 +298,7 @@ int readings(String command) {
   for (int i = 0; i < 8; i++) {
     leds.DigitalWrite(i, INPUT);
   }
-  
+
   delay(500);
     //all ON
   for (int i = 0; i < 8; i++) {
@@ -328,6 +333,12 @@ void initReadings() {
                     gasResistanceKOhms,
                     approxAltitudeInM);
   }
+
+  currentLat = box.readLat();
+  currentLon = box.readLon();
+
+  lastLat = box.readLat();
+  lastLon = box.readLon();
 }
 
 int powerOn(String command) {
@@ -356,7 +367,7 @@ int powerOn(String command) {
   for (int i = 0; i < 8; i++) {
     leds.DigitalWrite(i, OUTPUT);
   }
-  
+
   return 1;
 }
 
@@ -380,12 +391,12 @@ int powerOff(String command) {
   leds.DigitalWrite(5, OUTPUT);
   delay(500);
   leds.DigitalWrite(4, OUTPUT);
-  
+
   return 1;
 }
 
 int emergency(String command){
-    
+
       //all OFF
   for (int i = 0; i < 8; i++) {
     leds.DigitalWrite(i, OUTPUT);
@@ -417,7 +428,7 @@ int emergency(String command){
   for (int i = 0; i < 8; i++) {
     leds.DigitalWrite(i, OUTPUT);
   }
-    
+
     return 1;
 }
 
@@ -436,7 +447,7 @@ void displayBattery() {
   for (int i = 0; i < 8; i++) {
     //Off
     leds.DigitalWrite(i, OUTPUT);
-    
+
   }
 
 }
@@ -465,7 +476,7 @@ int gpsPublish(String command) {
     return 0;
   }
 }
-
+/*
 //Calculates distance between current and last reported gps cord
 float distance() {
   float deltaLat = currentLat - lastLat;
@@ -473,4 +484,17 @@ float distance() {
   float distanceBetween = pow(deltaLat, 2) + pow(deltaLon, 2);
   distanceBetween = sqrt(distanceBetween) * 100000;
   return distanceBetween;
+}
+*/
+
+float distance(){
+float R = 20902000;
+float deltaLat = (currentLat - lastLat) * (PI/180);
+float deltaLon = (currentLon - lastLon) * (PI/180);
+
+float a = sin(deltaLat/2) * sin(deltaLat/2) + cos((lastLat) * (PI/180)) * cos((lastLon)* (PI/180)) * sin(deltaLon/2) * sin(deltaLon/2) ;
+float c = 2 * atan2(sqrt(a),sqrt(1-a));
+
+float d = R * c;
+return d;
 }
