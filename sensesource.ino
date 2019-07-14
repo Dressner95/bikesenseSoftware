@@ -196,17 +196,18 @@ void loop() {
   initReadings();
 
         //When ready = true then the sense box is connected and should begin transmitting
+        RGB.color(0, 0, 0);
         RGB.color(0, 255, 0);
 
         currentLat = box.readLat();
         currentLon = box.readLon();
 
-        /*
+
           if (millis()-lastPublish > delayMinutes*60*1000) {
             readings("Interval");
             lastPublish = millis();
           }
-        */
+        
         if ( distance() > distanceInterval) {
           readings("Interval");
 
@@ -215,14 +216,15 @@ void loop() {
         }
 
       } else {
+        RGB.color(0, 0, 0);
         RGB.color(255, 255, 0);
 
       }
 
 
     } else {
-
-      RGB.color(255, 255, 255);
+      RGB.color(0, 0, 0);
+      RGB.color(255, 0, 0);
     }
   }
   else {
