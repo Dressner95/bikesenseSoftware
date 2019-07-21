@@ -203,11 +203,12 @@ void loop() {
         currentLon = box.readLon();
 
 
-          if (millis()-lastPublish > delayMinutes*60*1000) {
+        /*  if (millis()-lastPublish > delayMinutes*60*1000) {
             readings("Interval");
             lastPublish = millis();
           }
-        
+          */
+
         if ( distance() > distanceInterval) {
           readings("Interval");
 
