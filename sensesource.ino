@@ -136,6 +136,7 @@ void loop() {
 
         //J2
         case 0:
+        if(softOff){
           powerOn("1");
 
           Cellular.on();
@@ -143,6 +144,8 @@ void loop() {
           box.gpsOn();
 
           softOff = false;
+        }
+
 
           break;
 
@@ -153,6 +156,7 @@ void loop() {
 
         //J4
         case 2:
+        if(!softOff){
           powerOff("1");
 
           Cellular.off();
@@ -161,6 +165,8 @@ void loop() {
           RGB.color(0, 0, 0);
 
           softOff = true;
+        }
+
 
           break;
 
@@ -210,7 +216,7 @@ void loop() {
           */
 
         if ( distance() > distanceInterval) {
-          readings("Interval");
+          readings("I");
 
             //all ON
 
@@ -292,7 +298,7 @@ int readings(String command) {
                     approxAltitudeInM);
 
     char dataPayload[120];
-    sprintf(dataPayload, "{\"lat\":%f,\"long\":%f,\"temp\":%2.2f,\"voc\":%4f,\"name\":\"" + deviceName + "\"}", box.readLatDeg(), box.readLonDeg(), temperatureInC * 1.8 + 32, gasResistanceKOhms);
+    sprintf(dataPayload, "{\"lat\":%f,\"long\":%f,\"temp\":%2.2f,\"voc\":%4f,\"type\":\"" + command + "\",\"name\":\"" + deviceName + "\"}", box.readLatDeg(), box.readLonDeg(), temperatureInC * 1.8 + 32, gasResistanceKOhms);
     Particle.publish("uploadData", dataPayload, 60, PRIVATE);
 
     lastLat = box.readLat();
