@@ -38,7 +38,8 @@ float lastLon;
 
 // Used to keep track of the last time we published data
 long lastPublish = 0;
-
+long buttonTime = 0;
+float holdTime = 2000;
 //IO extender for LEDs
 TCA9534 leds(0x38);
 
@@ -129,64 +130,63 @@ void loop() {
   checkTouch();
 
   for (int i = 0; i < 4; i++) {
-    if (previousButtons[i] == 0 & currentButtons[i] == 1) {
+    if (previousButtons[i] == 0 && currentButtons[i] == 1) {
       buttonPressed[i] = 1;
+      buttonTime = millis();
+    } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
 
-      switch (i) {
-
-        //J2
-        case 0:
-        if(softOff){
-          powerOn("1");
-
-          Cellular.on();
-          Cellular.connect();
-          box.gpsOn();
-
-          softOff = false;
-        }
-
-
-          break;
-
-        //J3
-        case 1:
-          displayBattery();
-          break;
-
-        //J4
-        case 2:
-        if(!softOff){
-          powerOff("1");
-
-          Cellular.off();
-          box.gpsOff();
-
-          RGB.color(0, 0, 0);
-
-          softOff = true;
-        }
-
-
-          break;
-
-        //J5
-        case 3:
-          emergency("1");
-
-          readings("E");
-          break;
-      }
-    }
-    if (previousButtons[i] == 1 & currentButtons[i] == 0) {
-      buttonPressed[i] = 0;
     }
   }
+
+      //Show battery
+      if(!softOff && buttonPressed[1] && !previousButtons[1]){
+        displayBattery();
+      }
+
+      //Show battery
+      if(!softOff && buttonPressed[3] && !previousButtons[3] && (millis() - buttonTime > 1000)){
+        emergency("1");
+
+        readings("E");
+      }
+
+      if(!softOff && buttonPressed[2] && (millis() - buttonTime > holdTime)){
+        powerOff("1");
+
+        Cellular.off();
+        box.gpsOff();
+
+        RGB.color(0, 0, 0);
+
+        softOff = true;
+      }
+
+      if(softOff && buttonPressed[0] && (millis() - buttonTime > holdTime)){
+        powerOn("1");
+
+      Cellular.on();
+      Cellular.connect();
+      box.gpsOn();
+
+      RGB.color(255, 255, 255);
+
+      softOff = false;
+      }
 
   //Update at end of loop
   for (int i = 0; i < 4; i++) {
     previousButtons[i] = currentButtons[i];
   }
+}
+
+/*
+  //Double check for buttonTime
+  if(!buttonPressed[0] && !buttonPressed[1] && !buttonPressed[2] && !buttonPressed[3]){
+    buttonTime
+  } else {
+
+  }
+  */
 
   if (!softOff) {
 
