@@ -39,7 +39,7 @@ float lastLon;
 // Used to keep track of the last time we published data
 long lastPublish = 0;
 long buttonTime = 0;
-float holdTime = 2000;
+float holdTime = 1000;
 //IO extender for LEDs
 TCA9534 leds(0x38);
 
@@ -134,7 +134,7 @@ void loop() {
       buttonPressed[i] = 1;
       buttonTime = millis();
     } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
-
+      buttonPressed[i] = 0;
     }
   }
 
@@ -176,6 +176,12 @@ void loop() {
   //Update at end of loop
   for (int i = 0; i < 4; i++) {
     previousButtons[i] = currentButtons[i];
+  }
+
+  for (int i = 0; i < 4; i++) {
+    if (previousButtons[i] == 0 && currentButtons[i] == 0) {
+        buttonPressed[i] = 0;
+    }
   }
 
 
