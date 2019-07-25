@@ -177,7 +177,7 @@ void loop() {
   for (int i = 0; i < 4; i++) {
     previousButtons[i] = currentButtons[i];
   }
-}
+
 
 /*
   //Double check for buttonTime
@@ -233,9 +233,6 @@ void loop() {
       RGB.color(0, 0, 0);
       RGB.color(255, 0, 0);
     }
-  }
-  else {
-    // System.sleep(SLEEP_MODE_DEEP,5);
   }
 }
 
