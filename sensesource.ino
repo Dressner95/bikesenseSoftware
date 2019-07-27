@@ -17,7 +17,8 @@
 
 SYSTEM_THREAD(ENABLED);
 
-
+PRODUCT_ID(9894);
+PRODUCT_VERSION(2);
 
 //Four buttons on the top
 Adafruit_CAP1188 buttons = Adafruit_CAP1188();
