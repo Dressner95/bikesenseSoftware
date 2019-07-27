@@ -30,15 +30,16 @@ bool softOff = false;
 int delayMinutes = 0.5;
 
 //How many feet before sending GPS
-int distanceInterval = 20;
-float currentLat;
-float currentLon;
-float lastLat;
-float lastLon;
+double distanceInterval = 20;
+double currentLat;
+double currentLon;
+double lastLat;
+double lastLon;
 
 // Used to keep track of the last time we published data
 long lastPublish = 0;
 long buttonTime = 0;
+long serialTimer = 3000;
 float holdTime = 1000;
 //IO extender for LEDs
 TCA9534 leds(0x38);
@@ -67,6 +68,8 @@ void handler(const char *topic, const char *data) {
   deviceName = dmy;
 }
 void setup() {
+
+
 
   waitUntil(Particle.connected);
 
@@ -144,10 +147,12 @@ void loop() {
       }
 
       //Show battery
-      if(!softOff && buttonPressed[3] && !previousButtons[3] && (millis() - buttonTime > 1000)){
+      if(!softOff && buttonPressed[3] && (millis() - buttonTime > holdTime)){
         emergency("1");
 
         readings("E");
+
+        buttonPressed[3] = 0;
       }
 
       if(!softOff && buttonPressed[2] && (millis() - buttonTime > holdTime)){
@@ -159,6 +164,7 @@ void loop() {
         RGB.color(0, 0, 0);
 
         softOff = true;
+        Serial.println("SoftOff = True");
       }
 
       if(softOff && buttonPressed[0] && (millis() - buttonTime > holdTime)){
@@ -171,6 +177,7 @@ void loop() {
       RGB.color(255, 255, 255);
 
       softOff = false;
+      Serial.println("SoftOff = false");
       }
 
   //Update at end of loop
@@ -196,30 +203,42 @@ void loop() {
 
   if (!softOff) {
 
+//Serial.println("Unit On");
+
     //Update the GPS
     box.updateGPS();
 
     //Wait for cell signal and cloud connection
     if (Particle.connected()) {
-      Particle.connect();
+
+//Serial.println("Cloud Connected");
+
       //Now check for GPS
       if (box.gpsFix()) {
 
-  initReadings();
+        //initReadings();
+
+//Serial.println("GPS FIX");
 
         //When ready = true then the sense box is connected and should begin transmitting
         RGB.color(0, 0, 0);
         RGB.color(0, 255, 0);
 
-        currentLat = box.readLat();
-        currentLon = box.readLon();
+        currentLat = box.readLatDeg();
+        currentLon = box.readLonDeg();
 
 
-        /*  if (millis()-lastPublish > delayMinutes*60*1000) {
-            readings("Interval");
+          if (millis()-lastPublish > serialTimer) {
+            Serial.println(currentLat);
+            Serial.println(currentLon);
+            Serial.println(lastLat);
+            Serial.println(lastLon);
+            Serial.println("-------------");
+            Serial.println(distance());
+            Serial.println("-------------");
             lastPublish = millis();
           }
-          */
+
 
         if ( distance() > distanceInterval) {
           readings("I");
@@ -236,6 +255,7 @@ void loop() {
 
 
     } else {
+      Particle.connect();
       RGB.color(0, 0, 0);
       RGB.color(255, 0, 0);
     }
@@ -258,10 +278,13 @@ void checkTouch() {
     if (touched & (1 << i)) {
       //Serial.print(i+1);
 
-      Serial.print("C"); Serial.print(i + 1); Serial.print("\t");
+      //Serial.print("C"); Serial.print(i + 1); Serial.print("\t");
 
       currentButtons[i] = 1;
 
+    }
+    else{
+      currentButtons[i] = 0;
     }
   }
 }
@@ -304,8 +327,8 @@ int readings(String command) {
     sprintf(dataPayload, "{\"lat\":%f,\"long\":%f,\"temp\":%2.2f,\"voc\":%4f,\"type\":\"" + command + "\",\"name\":\"" + deviceName + "\"}", box.readLatDeg(), box.readLonDeg(), temperatureInC * 1.8 + 32, gasResistanceKOhms);
     Particle.publish("uploadData", dataPayload, 60, PRIVATE);
 
-    lastLat = box.readLat();
-    lastLon = box.readLon();
+    lastLat = box.readLatDeg();
+    lastLon = box.readLonDeg();
 
   for (int i = 0; i < 8; i++) {
     leds.DigitalWrite(i, INPUT);
@@ -321,7 +344,7 @@ int readings(String command) {
     return 1;
   }
 }
-
+/*
 void initReadings() {
   if (! bme.performReading()) {
   } else {
@@ -352,6 +375,7 @@ void initReadings() {
   lastLat = box.readLat();
   lastLon = box.readLon();
 }
+*/
 
 int powerOn(String command) {
 
@@ -492,21 +516,21 @@ int gpsPublish(String command) {
 //Calculates distance between current and last reported gps cord
 float distance() {
   float deltaLat = currentLat - lastLat;
-  float deltaLon = currentLon - lastLon;
+  float deltaLon = currentLon - ;
   float distanceBetween = pow(deltaLat, 2) + pow(deltaLon, 2);
   distanceBetween = sqrt(distanceBetween) * 100000;
   return distanceBetween;
 }
 */
 
-float distance(){
-float R = 20902000;
-float deltaLat = (currentLat - lastLat) * (PI/180);
-float deltaLon = (currentLon - lastLon) * (PI/180);
+double distance(){
+double R = 20902000;
+double deltaLat = (currentLat - lastLat) * (PI/180);
+double deltaLon = (currentLon - lastLon) * (PI/180);
 
-float a = sin(deltaLat/2) * sin(deltaLat/2) + cos((lastLat) * (PI/180)) * cos((lastLon)* (PI/180)) * sin(deltaLon/2) * sin(deltaLon/2) ;
-float c = 2 * atan2(sqrt(a),sqrt(1-a));
+double a = sin(deltaLat/2) * sin(deltaLat/2) + cos((lastLat) * (PI/180)) * cos((lastLon)* (PI/180)) * sin(deltaLon/2) * sin(deltaLon/2) ;
+double c = 2 * atan2(sqrt(a),sqrt(1-a));
 
-float d = R * c;
+double d = R * c;
 return d;
 }
