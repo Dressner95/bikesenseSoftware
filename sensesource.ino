@@ -17,6 +17,8 @@
 
 SYSTEM_THREAD(ENABLED);
 
+
+
 //Four buttons on the top
 Adafruit_CAP1188 buttons = Adafruit_CAP1188();
 
@@ -155,7 +157,7 @@ void loop() {
         buttonPressed[3] = 0;
       }
 
-      if(!softOff && buttonPressed[2] && (millis() - buttonTime > holdTime)){
+      if(!softOff && buttonPressed[0] && (millis() - buttonTime > holdTime)){
         powerOff("1");
 
         Cellular.off();
@@ -167,7 +169,7 @@ void loop() {
         Serial.println("SoftOff = True");
       }
 
-      if(softOff && buttonPressed[0] && (millis() - buttonTime > holdTime)){
+      if(softOff && buttonPressed[2] && (millis() - buttonTime > holdTime)){
         powerOn("1");
 
       Cellular.on();
