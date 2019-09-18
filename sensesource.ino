@@ -1,3 +1,5 @@
+SYSTEM_MODE(SEMI_AUTOMATIC);
+
 // This #include statement was automatically added by the Particle IDE.
 #include "bme680.h"
 #include "Adafruit_BME680.h"
@@ -15,7 +17,7 @@
 
 #include "Wire.h"
 
-SYSTEM_THREAD(ENABLED);
+//SYSTEM_THREAD(ENABLED);
 
 PRODUCT_ID(9894);
 PRODUCT_VERSION(3);
@@ -86,22 +88,28 @@ void handler(const char *topic, const char *data) {
 }
 
 void setup(){
+
+  Serial.begin(9600);
   //Set LED control
   RGB.control(true);
   RGB.brightness(64);
 
   //Connect to the asset tracker and make sure it's off
     box.begin();
-    box.gpsOff();
 
     //Initialize communication with the CAP1188
     if (!buttons.begin()) {
       Serial.println("CAP1188 Error");
+
+      RGB.color(0, 0, 0);
+      RGB.color(255, 0, 0);
     }
 
     //Initialize communication with the TCA9534
     if (!leds.Begin()) {
       Serial.println("TCA Error");
+      RGB.color(0, 0, 0);
+      RGB.color(0, 255, 0);
     }
     initLeds();
 
@@ -109,14 +117,17 @@ void setup(){
     //It sleeps after start up
     if (!bme.begin()) {
       Serial.println("BME680 Error");
+      RGB.color(0, 0, 0);
+      RGB.color(0, 0, 255);
     }
 
-      Serial.begin(9600);
+
 }
 
 void loop(){
   switch (currentState){
     case STARTUP:
+    Serial.println(currentState);
     //quick delay to sort out the CAP1188
     delay(200);
     previousMillis = millis();
@@ -124,6 +135,9 @@ void loop(){
     break;//end of start up
 
     case BUTTONCHECK:
+    Serial.println(currentState);
+    RGB.color(0, 0, 0);
+    RGB.color(255, 0, 0);
 
     //run a check on cap pads
     checkTouch();
@@ -158,17 +172,28 @@ void loop(){
     break; //end of SLEEP
 
     case FULLPOWER:
+    Serial.println(currentState);
     powerOn("1");
 
+    RGB.color(0, 0, 0);
+
     Cellular.on();
+
     Cellular.connect();
+        RGB.color(0, 255, 0);
     box.gpsOn();
     box.antennaExternal();
+
+    RGB.color(0, 255, 0);
+
+delay(500);
 
     currentState = SEARCHING;
     break;//end of FULLPOWER
 
     case SEARCHING:
+    Serial.println(currentState);
+    RGB.color(0, 0, 0);
 
     if (Particle.connected()){
       currentState = CONNECTED;
@@ -212,10 +237,13 @@ void loop(){
     break; //END OF SEARHCING
 
     case SLEEP:
+    Serial.println(currentState);
     System.sleep(SLEEP_MODE_DEEP,8);
+    currentState = STARTUP;
     break; //end of SLEEP
 
     case CONNECTED:
+        Serial.println(currentState);
       //Get device name
      Particle.subscribe("particle/device/name", handler);
      //Remote functions
@@ -225,11 +253,16 @@ void loop(){
      Particle.function("PowerOn", powerOn);
      Particle.function("PowerOff", powerOff);
 
-      currentState = DATACOLLECTION;
+    RGB.color(0, 0, 0);
+    RGB.color(255, 0, 128);
+
+    currentState = DATACOLLECTION;
     break; //end of CONNECTED
 
     case DATACOLLECTION:
-
+    Serial.println(currentState);
+    RGB.color(0, 0, 0);
+    RGB.color(0, 0, 255);
     //Update the GPS
     box.updateGPS();
 
@@ -270,6 +303,8 @@ void loop(){
 
     //Now check for GPS
     if (box.gpsFix()) {
+
+      RGB.color(0, 0, 255);
 
       currentLat = box.readLatDeg();
       currentLon = box.readLonDeg();
