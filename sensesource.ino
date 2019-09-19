@@ -96,6 +96,8 @@ void setup(){
 
   //Connect to the asset tracker and make sure it's off
     box.begin();
+    Cellular.off();
+    box.gpsOff();
 
     //Initialize communication with the CAP1188
     if (!buttons.begin()) {
@@ -105,13 +107,6 @@ void setup(){
       RGB.color(255, 0, 0);
     }
 
-    //Initialize communication with the TCA9534
-    if (!leds.Begin()) {
-      Serial.println("TCA Error");
-      RGB.color(0, 0, 0);
-      RGB.color(0, 255, 0);
-    }
-    initLeds();
 
     //Initialize communication with the BME680
     //It sleeps after start up
@@ -153,6 +148,13 @@ void loop(){
 
     if (buttonPressed[2] && millis() - buttonTime > 500){
       currentState = FULLPOWER;
+
+      //Initialize communication with the TCA9534
+      if (!leds.Begin()) {
+        Serial.println("TCA Error");
+      }
+      initLeds();
+
     }
 
     if (millis() - previousMillis > 1500 && !buttonPressed[2]){
@@ -236,8 +238,10 @@ void loop(){
 
     case SLEEP:
     Serial.println(currentState);
-    System.sleep(SLEEP_MODE_DEEP,8);
     RGB.color(0, 0, 0);
+    Cellular.off();
+    box.gpsOff();
+    System.sleep(SLEEP_MODE_SOFTPOWEROFF,8,SLEEP_DISABLE_WKP_PIN);
     currentState = STARTUP;
     break; //end of SLEEP
 
