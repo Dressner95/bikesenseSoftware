@@ -17,7 +17,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 
 #include "Wire.h"
 
-//SYSTEM_THREAD(ENABLED);
+SYSTEM_THREAD(ENABLED);
 
 PRODUCT_ID(9894);
 PRODUCT_VERSION(3);
@@ -49,7 +49,7 @@ bool softOff = false;
 int delayMinutes = 0.5;
 
 //How many feet before sending GPS
-double distanceInterval = 20;
+double distanceInterval = 50;
 double currentLat;
 double currentLon;
 double lastLat;
@@ -137,7 +137,7 @@ void loop(){
     case BUTTONCHECK:
     Serial.println(currentState);
     RGB.color(0, 0, 0);
-    RGB.color(255, 0, 0);
+    RGB.color(0, 128, 128);
 
     //run a check on cap pads
     checkTouch();
@@ -175,18 +175,11 @@ void loop(){
     Serial.println(currentState);
     powerOn("1");
 
-    RGB.color(0, 0, 0);
-
     Cellular.on();
 
     Cellular.connect();
-        RGB.color(0, 255, 0);
     box.gpsOn();
     box.antennaExternal();
-
-    RGB.color(0, 255, 0);
-
-delay(500);
 
     currentState = SEARCHING;
     break;//end of FULLPOWER
@@ -194,7 +187,7 @@ delay(500);
     case SEARCHING:
     Serial.println(currentState);
     RGB.color(0, 0, 0);
-
+    RGB.color(255, 0, 0);
     if (Particle.connected()){
       currentState = CONNECTED;
     }
@@ -222,6 +215,11 @@ delay(500);
     currentState = SLEEP;
     }
 
+    //Show battery
+    if(buttonPressed[1] && !previousButtons[1]){
+      displayBattery();
+    }
+
     //reset button arrays
     for (int i = 0; i < 4; i++) {
       previousButtons[i] = currentButtons[i];
@@ -239,11 +237,12 @@ delay(500);
     case SLEEP:
     Serial.println(currentState);
     System.sleep(SLEEP_MODE_DEEP,8);
+    RGB.color(0, 0, 0);
     currentState = STARTUP;
     break; //end of SLEEP
 
     case CONNECTED:
-        Serial.println(currentState);
+     Serial.println(currentState);
       //Get device name
      Particle.subscribe("particle/device/name", handler);
      //Remote functions
