@@ -105,6 +105,8 @@ void setup(){
 
       RGB.color(0, 0, 0);
       RGB.color(255, 0, 0);
+
+      delay(555);
     }
 
 
@@ -114,6 +116,7 @@ void setup(){
       Serial.println("BME680 Error");
       RGB.color(0, 0, 0);
       RGB.color(0, 0, 255);
+        delay(555);
     }
 
 
@@ -126,13 +129,14 @@ void loop(){
     //quick delay to sort out the CAP1188
     delay(200);
     previousMillis = millis();
+    RGB.color(0, 0, 0);
+    RGB.color(0, 128, 128);
     currentState = BUTTONCHECK;
     break;//end of start up
 
     case BUTTONCHECK:
     Serial.println(currentState);
-    RGB.color(0, 0, 0);
-    RGB.color(0, 128, 128);
+
 
     //run a check on cap pads
     checkTouch();
@@ -146,15 +150,26 @@ void loop(){
       }
     }
 
+    if(currentButtons[2]){
+      RGB.color(0, 0, 0);
+      RGB.color(0, 128, 0);
+    } else {
+      RGB.color(0, 0, 0);
+      RGB.color(0, 128, 128);
+    }
+
     if (buttonPressed[2] && millis() - buttonTime > 500){
-      currentState = FULLPOWER;
+
 
       //Initialize communication with the TCA9534
       if (!leds.Begin()) {
         Serial.println("TCA Error");
+        RGB.color(0, 0, 0);
+        RGB.color(255, 0, 255);
+          delay(555);
       }
       initLeds();
-
+      currentState = FULLPOWER;
     }
 
     if (millis() - previousMillis > 1500 && !buttonPressed[2]){
@@ -175,6 +190,8 @@ void loop(){
 
     case FULLPOWER:
     Serial.println(currentState);
+
+
     powerOn("1");
 
     Cellular.on();
@@ -264,6 +281,8 @@ void loop(){
      Serial.println(currentState);
       //Get device name
      Particle.subscribe("particle/device/name", handler);
+     Particle.publish("particle/device/name");
+
      //Remote functions
      Particle.function("batt", batteryStatus);
      Particle.function("gps", gpsPublish);
