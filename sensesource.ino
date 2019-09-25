@@ -188,11 +188,26 @@ void loop(){
 
     case SEARCHING:
     Serial.println(currentState);
-    RGB.color(0, 0, 0);
-    RGB.color(255, 0, 0);
-    if (Particle.connected()){
-      currentState = CONNECTED;
+
+    //Cellular Check
+    if(!Cellular.ready() && !Cellular.connecting()){
+      Cellular.connect();
     }
+    if(Cellular.connecting()){
+      //Do nothing just wait
+      RGB.color(0, 0, 0);
+      RGB.color(255, 0, 0);
+    }
+
+    if(Cellular.ready()){
+        //Particle Check
+        if (Particle.connected()){
+          currentState = CONNECTED;
+        } else {
+          Particle.connect();
+        }
+    }
+
 
     //Update the GPS
     box.updateGPS();
@@ -241,7 +256,7 @@ void loop(){
     RGB.color(0, 0, 0);
     Cellular.off();
     box.gpsOff();
-    System.sleep(SLEEP_MODE_SOFTPOWEROFF,8,SLEEP_DISABLE_WKP_PIN);
+    System.sleep(SLEEP_MODE_SOFTPOWEROFF,10,SLEEP_DISABLE_WKP_PIN);
     currentState = STARTUP;
     break; //end of SLEEP
 
