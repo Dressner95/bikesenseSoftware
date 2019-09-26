@@ -152,7 +152,7 @@ void loop(){
 
     if(currentButtons[2]){
       RGB.color(0, 0, 0);
-      RGB.color(0, 128, 0);
+      RGB.color(0, 0, 255);
     } else {
       RGB.color(0, 0, 0);
       RGB.color(0, 128, 128);
@@ -298,8 +298,6 @@ void loop(){
 
     case DATACOLLECTION:
     Serial.println(currentState);
-    RGB.color(0, 0, 0);
-    RGB.color(128, 128, 0);
     //Update the GPS
     box.updateGPS();
 
@@ -352,6 +350,9 @@ void loop(){
           //all ON
 
       }
+    } else {
+      RGB.color(0, 0, 0);
+      RGB.color(128, 128, 0);
     }
 
 
