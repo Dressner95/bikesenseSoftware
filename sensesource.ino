@@ -172,7 +172,7 @@ void loop(){
       currentState = FULLPOWER;
     }
 
-    if (millis() - previousMillis > 1500 && !buttonPressed[2]){
+    if (millis() - previousMillis > 1500 && !buttonPressed[2] || millis() - buttonTime > 3000){
       currentState = SLEEP;
     }
 
@@ -291,7 +291,7 @@ void loop(){
      Particle.function("PowerOff", powerOff);
 
     RGB.color(0, 0, 0);
-    RGB.color(255, 0, 128);
+    RGB.color(128, 128, 0);
 
     currentState = DATACOLLECTION;
     break; //end of CONNECTED
@@ -299,7 +299,7 @@ void loop(){
     case DATACOLLECTION:
     Serial.println(currentState);
     RGB.color(0, 0, 0);
-    RGB.color(0, 0, 255);
+    RGB.color(128, 128, 0);
     //Update the GPS
     box.updateGPS();
 
@@ -341,7 +341,7 @@ void loop(){
     //Now check for GPS
     if (box.gpsFix()) {
 
-      RGB.color(0, 0, 255);
+      RGB.color(0, 255, 0);
 
       currentLat = box.readLatDeg();
       currentLon = box.readLonDeg();
