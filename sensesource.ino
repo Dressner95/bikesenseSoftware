@@ -49,7 +49,7 @@ bool softOff = false;
 int delayMinutes = 0.5;
 
 //How many feet before sending GPS
-double distanceInterval = 50;
+double distanceInterval = 20;
 double currentLat;
 double currentLon;
 double lastLat;
