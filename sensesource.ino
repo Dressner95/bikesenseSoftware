@@ -20,7 +20,7 @@ SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
 
 PRODUCT_ID(9894);
-PRODUCT_VERSION(6);
+PRODUCT_VERSION(7);
 
 enum states {
     STARTUP,
@@ -435,7 +435,7 @@ int readings(String command) {
 
     char dataPayload[120];
     sprintf(dataPayload, "{\"lat\":%f,\"long\":%f,\"temp\":%2.2f,\"voc\":%4f,\"type\":\"" + command + "\",\"name\":\"" + deviceName + "\"}", box.readLatDeg(), box.readLonDeg(), temperatureInC * 1.8 + 32, gasResistanceKOhms);
-    Particle.publish("uploadData", dataPayload, 60, PRIVATE);
+    Particle.publish("maker", dataPayload, 60, PRIVATE);
 
     lastLat = box.readLatDeg();
     lastLon = box.readLonDeg();
