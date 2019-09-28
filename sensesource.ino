@@ -1,3 +1,5 @@
+SYSTEM_MODE(SEMI_AUTOMATIC);
+
 // This #include statement was automatically added by the Particle IDE.
 #include "bme680.h"
 #include "Adafruit_BME680.h"
@@ -18,7 +20,21 @@
 SYSTEM_THREAD(ENABLED);
 
 PRODUCT_ID(9894);
-PRODUCT_VERSION(2);
+PRODUCT_VERSION(5);
+
+enum states {
+    STARTUP,
+    BUTTONCHECK,
+    SLEEP,
+    SEARCHING,
+    CONNECTED,
+    FULLPOWER,
+    DATACOLLECTION
+};
+
+states currentState = STARTUP;
+
+unsigned long previousMillis = 0;
 
 //Four buttons on the top
 Adafruit_CAP1188 buttons = Adafruit_CAP1188();
@@ -33,7 +49,7 @@ bool softOff = false;
 int delayMinutes = 0.5;
 
 //How many feet before sending GPS
-double distanceInterval = 20;
+double distanceInterval = 50;
 double currentLat;
 double currentLon;
 double lastLat;
@@ -70,200 +86,291 @@ void handler(const char *topic, const char *data) {
   strcpy(dmy, data);
   deviceName = dmy;
 }
-void setup() {
 
-
-
-  waitUntil(Particle.connected);
-
-  //Get device name
-  Particle.subscribe("particle/device/name", handler);
-  Particle.publish("particle/device/name");
-
-  //Remote functions
-  Particle.function("batt", batteryStatus);
-  Particle.function("gps", gpsPublish);
-  Particle.function("readings", readings);
-  Particle.function("PowerOn", powerOn);
-  Particle.function("PowerOff", powerOff);
-
-  //Set LED control
-  RGB.control(true);
-  RGB.brightness(128);
-
-  //Turn on all functions of the board
-  box.begin();
-  box.gpsOn();
-  box.antennaExternal();
-
-  //Initialize communication with the CAP1188
-  if (!buttons.begin()) {
-    Serial.println("CAP1188 Error");
-  }
-
-
-  //Initialize communication with the TCA9534
-  if (!leds.Begin()) {
-    Serial.println("TCA Error");
-  }
-  initLeds();
-
-
-
-
-  //Initialize communication with the BME680
-  if (!bme.begin()) {
-    Serial.println("BME680 Error");
-  }
-
-  // Set up oversampling and filter initialization
-  bme.setTemperatureOversampling(BME680_OS_8X);
-  bme.setHumidityOversampling(BME680_OS_2X);
-  bme.setPressureOversampling(BME680_OS_4X);
-  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
-  // 320*C for 150 ms
-  bme.setGasHeater(320, 150);
-
-
+void setup(){
 
   Serial.begin(9600);
+  //Set LED control
+  RGB.control(true);
+  RGB.brightness(64);
+
+  //Connect to the asset tracker and make sure it's off
+    box.begin();
+    Cellular.off();
+    box.gpsOff();
+
+    //Initialize communication with the CAP1188
+    if (!buttons.begin()) {
+      Serial.println("CAP1188 Error");
+
+      RGB.color(0, 0, 0);
+      RGB.color(255, 0, 0);
+
+      delay(555);
+    }
+
+
+    //Initialize communication with the BME680
+    //It sleeps after start up
+    if (!bme.begin()) {
+      Serial.println("BME680 Error");
+      RGB.color(0, 0, 0);
+      RGB.color(0, 0, 255);
+        delay(555);
+    }
+
 
 }
 
-void loop() {
+void loop(){
+  switch (currentState){
+    case STARTUP:
+    Serial.println(currentState);
+    //quick delay to sort out the CAP1188
+    delay(200);
+    previousMillis = millis();
+    RGB.color(0, 0, 0);
+    RGB.color(0, 128, 128);
+    currentState = BUTTONCHECK;
+    break;//end of start up
+
+    case BUTTONCHECK:
+    Serial.println(currentState);
 
 
-  checkTouch();
+    //run a check on cap pads
+    checkTouch();
 
-  for (int i = 0; i < 4; i++) {
-    if (previousButtons[i] == 0 && currentButtons[i] == 1) {
-      buttonPressed[i] = 1;
-      buttonTime = millis();
-    } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
-      buttonPressed[i] = 0;
-    }
-  }
-
-      //Show battery
-      if(!softOff && buttonPressed[1] && !previousButtons[1]){
-        displayBattery();
-      }
-
-      //Show battery
-      if(!softOff && buttonPressed[3] && (millis() - buttonTime > holdTime)){
-        emergency("1");
-
-        readings("E");
-
-        buttonPressed[3] = 0;
-      }
-
-      if(!softOff && buttonPressed[0] && (millis() - buttonTime > holdTime)){
-        powerOff("1");
-
-        Cellular.off();
-        box.gpsOff();
-
-        RGB.color(0, 0, 0);
-
-        softOff = true;
-        Serial.println("SoftOff = True");
-      }
-
-      if(softOff && buttonPressed[2] && (millis() - buttonTime > holdTime)){
-        powerOn("1");
-
-      Cellular.on();
-      Cellular.connect();
-      box.gpsOn();
-
-      RGB.color(255, 255, 255);
-
-      softOff = false;
-      Serial.println("SoftOff = false");
-      }
-
-  //Update at end of loop
-  for (int i = 0; i < 4; i++) {
-    previousButtons[i] = currentButtons[i];
-  }
-
-  for (int i = 0; i < 4; i++) {
-    if (previousButtons[i] == 0 && currentButtons[i] == 0) {
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 1) {
+        buttonPressed[i] = 1;
+        buttonTime = millis();
+      } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
         buttonPressed[i] = 0;
+      }
+    }
+
+    if(currentButtons[2]){
+      RGB.color(0, 0, 0);
+      RGB.color(0, 0, 255);
+    } else {
+      RGB.color(0, 0, 0);
+      RGB.color(0, 128, 128);
+    }
+
+    if (buttonPressed[2] && millis() - buttonTime > 500){
+
+
+      //Initialize communication with the TCA9534
+      if (!leds.Begin()) {
+        Serial.println("TCA Error");
+        RGB.color(0, 0, 0);
+        RGB.color(255, 0, 255);
+          delay(555);
+      }
+      initLeds();
+      currentState = FULLPOWER;
+    }
+
+    if (millis() - previousMillis > 1500 && !buttonPressed[2] || millis() - buttonTime > 3000){
+      currentState = SLEEP;
+    }
+
+    //reset button arrays
+    for (int i = 0; i < 4; i++) {
+      previousButtons[i] = currentButtons[i];
+    }
+
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 0) {
+          buttonPressed[i] = 0;
     }
   }
+    break; //end of SLEEP
+
+    case FULLPOWER:
+    Serial.println(currentState);
 
 
-/*
-  //Double check for buttonTime
-  if(!buttonPressed[0] && !buttonPressed[1] && !buttonPressed[2] && !buttonPressed[3]){
-    buttonTime
-  } else {
+    powerOn("1");
 
-  }
-  */
+    Cellular.on();
 
-  if (!softOff) {
+    Cellular.connect();
+    box.gpsOn();
+    box.antennaExternal();
 
-//Serial.println("Unit On");
+    currentState = SEARCHING;
+    break;//end of FULLPOWER
+
+    case SEARCHING:
+    Serial.println(currentState);
+
+    //Cellular Check
+    if(!Cellular.ready() && !Cellular.connecting()){
+      Cellular.connect();
+    }
+    if(Cellular.connecting()){
+      //Do nothing just wait
+      RGB.color(0, 0, 0);
+      RGB.color(255, 0, 0);
+    }
+
+    if(Cellular.ready()){
+        //Particle Check
+        if (Particle.connected()){
+          currentState = CONNECTED;
+        } else {
+          Particle.connect();
+        }
+    }
+
 
     //Update the GPS
     box.updateGPS();
 
-    //Wait for cell signal and cloud connection
-    if (Particle.connected()) {
+    checkTouch();
 
-//Serial.println("Cloud Connected");
-
-      //Now check for GPS
-      if (box.gpsFix()) {
-
-        //initReadings();
-
-//Serial.println("GPS FIX");
-
-        //When ready = true then the sense box is connected and should begin transmitting
-        RGB.color(0, 0, 0);
-        RGB.color(0, 255, 0);
-
-        currentLat = box.readLatDeg();
-        currentLon = box.readLonDeg();
-
-
-          if (millis()-lastPublish > serialTimer) {
-            Serial.println(currentLat);
-            Serial.println(currentLon);
-            Serial.println(lastLat);
-            Serial.println(lastLon);
-            Serial.println("-------------");
-            Serial.println(distance());
-            Serial.println("-------------");
-            lastPublish = millis();
-          }
-
-
-        if ( distance() > distanceInterval) {
-          readings("I");
-
-            //all ON
-
-        }
-
-      } else {
-        RGB.color(0, 0, 0);
-        RGB.color(255, 255, 0);
-
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 1) {
+        buttonPressed[i] = 1;
+        buttonTime = millis();
+      } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
+        buttonPressed[i] = 0;
       }
+    }
 
+    if(buttonPressed[0] && millis() - buttonTime > 1000){
+    powerOff("0");
 
-    } else {
-      Particle.connect();
-      RGB.color(0, 0, 0);
-      RGB.color(255, 0, 0);
+    Cellular.off();
+    box.gpsOff();
+
+    currentState = SLEEP;
+    }
+
+    //Show battery
+    if(buttonPressed[1] && !previousButtons[1]){
+      displayBattery();
+    }
+
+    //reset button arrays
+    for (int i = 0; i < 4; i++) {
+      previousButtons[i] = currentButtons[i];
+    }
+
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 0) {
+          buttonPressed[i] = 0;
     }
   }
-}
+
+
+    break; //END OF SEARHCING
+
+    case SLEEP:
+    Serial.println(currentState);
+    RGB.color(0, 0, 0);
+    Cellular.off();
+    box.gpsOff();
+    System.sleep(SLEEP_MODE_SOFTPOWEROFF,10,SLEEP_DISABLE_WKP_PIN);
+    currentState = STARTUP;
+    break; //end of SLEEP
+
+    case CONNECTED:
+     Serial.println(currentState);
+      //Get device name
+     Particle.subscribe("particle/device/name", handler);
+     Particle.publish("particle/device/name");
+
+     //Remote functions
+     Particle.function("batt", batteryStatus);
+     Particle.function("gps", gpsPublish);
+     Particle.function("readings", readings);
+     Particle.function("PowerOn", powerOn);
+     Particle.function("PowerOff", powerOff);
+
+    RGB.color(0, 0, 0);
+    RGB.color(128, 128, 0);
+
+    currentState = DATACOLLECTION;
+    break; //end of CONNECTED
+
+    case DATACOLLECTION:
+    Serial.println(currentState);
+    //Update the GPS
+    box.updateGPS();
+
+    checkTouch();
+
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 1) {
+        buttonPressed[i] = 1;
+        buttonTime = millis();
+      } else if (previousButtons[i] == 1 && currentButtons[i] == 0){
+        buttonPressed[i] = 0;
+      }
+    }
+
+    //Show battery
+    if(buttonPressed[1] && !previousButtons[1]){
+      displayBattery();
+    }
+
+    //Emergency
+    if(buttonPressed[3] && (millis() - buttonTime > holdTime)){
+      emergency("1");
+
+      readings("E");
+
+      buttonPressed[3] = 0;
+    }
+
+    //Turn "off" unit
+    if(buttonPressed[0] && (millis() - buttonTime > holdTime)){
+      powerOff("1");
+
+      Cellular.off();
+      box.gpsOff();
+
+      currentState = SLEEP;
+    }
+
+    //Now check for GPS
+    if (box.gpsFix()) {
+
+      RGB.color(0, 255, 0);
+
+      currentLat = box.readLatDeg();
+      currentLon = box.readLonDeg();
+
+      if ( distance() > distanceInterval) {
+        readings("I");
+
+          //all ON
+
+      }
+    } else {
+      RGB.color(0, 0, 0);
+      RGB.color(128, 128, 0);
+    }
+
+
+    //DO NOT WRITE AFTER THIS BLOCK
+    //Update at end of loop
+    for (int i = 0; i < 4; i++) {
+      previousButtons[i] = currentButtons[i];
+    }
+
+    for (int i = 0; i < 4; i++) {
+      if (previousButtons[i] == 0 && currentButtons[i] == 0) {
+          buttonPressed[i] = 0;
+      }
+    }
+
+    break; //end of DATACOLLECTION
+  } //end of switch
+} //end of loop
 
 void checkTouch() {
 
